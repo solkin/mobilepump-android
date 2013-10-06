@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">mobilepump-android</string>
+    <string name="menu_search">Search</string>
+    <string name="add_download">New Download</string>
+    <string name="settings">Settings</string>
+    <string name="info">Info</string>
+    <string name="feedback">Feedback</string>
+    <string name="uri">URI</string>
+    <string name="file_name">File Name</string>
+    <string name="file_path">File Path</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">Ok</string>
+</resources>

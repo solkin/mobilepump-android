@@ -1,12 +1,9 @@
 package com.example.mobilepump_android;
 
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
+import android.app.*;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.widget.Toast;
 
 /**
  * Created with IntelliJ IDEA.
@@ -16,6 +13,32 @@ import android.widget.Toast;
  * To change this template use File | Settings | File Templates.
  */
 public class AddDownloadDialog extends DialogFragment {
+
+    public interface AddDownloadDialogListener {
+        public void onDialogPositiveClick(DialogFragment dialog);
+        public void onDialogNegativeClick(DialogFragment dialog);
+    }
+
+    AddDownloadDialogListener mListener;
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        // Verify that the host activity implements the callback interface
+        try {
+            mListener = (AddDownloadDialogListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString()
+                    + " must implement NoticeDialogListener");
+        }
+    }
+
+
+    public static void show(FragmentManager fragmentManager){
+        AddDownloadDialog dialog = new AddDownloadDialog();
+        dialog.show(fragmentManager, "add_download_dialog");
+    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -27,12 +50,12 @@ public class AddDownloadDialog extends DialogFragment {
                 .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        Toast.makeText(getActivity(), "Add download", Toast.LENGTH_SHORT).show();
+                        mListener.onDialogPositiveClick(AddDownloadDialog.this);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        AddDownloadDialog.this.getDialog().cancel();
+                        mListener.onDialogNegativeClick(AddDownloadDialog.this);
                     }
                 });
         return builder.create();

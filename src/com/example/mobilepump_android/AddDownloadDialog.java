@@ -4,6 +4,8 @@ import android.app.*;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,11 +17,12 @@ import android.view.LayoutInflater;
 public class AddDownloadDialog extends DialogFragment {
 
     public interface AddDownloadDialogListener {
-        public void onDialogPositiveClick(DialogFragment dialog);
+        public void onDialogPositiveClick(String uri, String fileName, String filePath);
         public void onDialogNegativeClick(DialogFragment dialog);
     }
 
     AddDownloadDialogListener mListener;
+    View dialogView;
 
     @Override
     public void onAttach(Activity activity) {
@@ -45,12 +48,16 @@ public class AddDownloadDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
 
-        builder.setView(inflater.inflate(R.layout.add_download_dialog, null))
+        dialogView = inflater.inflate(R.layout.add_download_dialog, null);
+        builder.setView(dialogView)
                 // Add action buttons
                 .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        mListener.onDialogPositiveClick(AddDownloadDialog.this);
+                        String uri = ((EditText) dialogView.findViewById(R.id.uri)).getText().toString();
+                        String fileName = ((EditText) dialogView.findViewById(R.id.file_name)).getText().toString();
+                        String filePath = ((EditText) dialogView.findViewById(R.id.file_path)).getText().toString();
+                        mListener.onDialogPositiveClick(uri, fileName, filePath);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {

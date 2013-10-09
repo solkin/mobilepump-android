@@ -1,7 +1,6 @@
 package com.example.mobilepump_android;
 
 import android.app.Activity;
-import android.app.DialogFragment;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,13 +12,16 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements AddDownloadDialog.AddDownloadDialogListener {
+public class MainActivity extends Activity implements AddDownloadDialog.DownloadAdder{
 
     private DownloadManager mDownloadManager;
     private BroadcastReceiver mReceiver;
+    private ListView mListView;
+    private DownloadAdapter mDownloadAdapter;
 
     private boolean isOnlyWiFi = true;
     private boolean isNotAllowedOverRoaming = true;
@@ -50,6 +52,10 @@ public class MainActivity extends Activity implements AddDownloadDialog.AddDownl
         filter.addAction(DownloadManager.ACTION_NOTIFICATION_CLICKED);
         filter.addAction(DownloadManager.ACTION_VIEW_DOWNLOADS);
         registerReceiver(mReceiver, filter);
+
+        mListView = (ListView) findViewById(R.id.list);
+        mDownloadAdapter = new DownloadAdapter(this, getLoaderManager());
+        mListView.setAdapter(mDownloadAdapter);
     }
 
     @Override
@@ -71,27 +77,39 @@ public class MainActivity extends Activity implements AddDownloadDialog.AddDownl
         }
     }
 
-    @Override
-    public void onDialogPositiveClick(String uri, String fileName, String filePath) {
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(uri));
+    public void addDownload(String stringUri, String fileName, String filePath) {
+        DownloadManager.Request request;
+
+        try {
+            Uri uri = Uri.parse(stringUri);
+            request = new DownloadManager.Request(uri);
+        } catch (NullPointerException e)  {
+            Log.e(Constants.TAG, "exception", e);
+            return;
+        } catch (IllegalArgumentException e) {
+            // Протокол должен быть либо HTTP, либо HTTPS
+            Log.e(Constants.TAG, "exception", e);
+            Toast.makeText(this, e.toString(), Toast.LENGTH_LONG);
+            return;
+        }
+
 
         String destinationUri;
         if (fileName.isEmpty()){
-            fileName = uri.substring(uri.lastIndexOf('/') + 1, uri.length());
+            fileName = stringUri.substring(stringUri.lastIndexOf('/') + 1, stringUri.length());
         }
 
-        if (filePath.isEmpty()) {
-            filePath = DEFAULT_PATH;
+        if (!filePath.isEmpty()) {
+            //filePath = DEFAULT_PATH;
+            if (filePath.endsWith("/")){
+                destinationUri = "file://" + filePath + fileName;
+            } else {
+                destinationUri = "file://" + filePath + "/" + fileName;
+            }
+            request.setDestinationUri(Uri.parse(destinationUri));
         }
 
-        if (filePath.endsWith("/")){
-            destinationUri = "file://" + filePath + fileName;
-        } else {
-            destinationUri = "file://" + filePath + "/" + fileName;
-        }
-        Log.d(Constants.TAG, destinationUri);
-        request.setDestinationUri(Uri.parse(destinationUri));
-        request.setTitle(uri);
+        request.setTitle(stringUri);
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
 
         if (isOnlyWiFi){
@@ -102,10 +120,5 @@ public class MainActivity extends Activity implements AddDownloadDialog.AddDownl
         }
 
         mDownloadManager.enqueue(request);
-    }
-
-    @Override
-    public void onDialogNegativeClick(DialogFragment dialog) {
-        dialog.getDialog().cancel();
     }
 }

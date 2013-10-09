@@ -16,12 +16,11 @@ import android.widget.EditText;
  */
 public class AddDownloadDialog extends DialogFragment {
 
-    public interface AddDownloadDialogListener {
-        public void onDialogPositiveClick(String uri, String fileName, String filePath);
-        public void onDialogNegativeClick(DialogFragment dialog);
+    public interface DownloadAdder{
+        public void addDownload(String uri, String fileName, String filePath);
     }
 
-    AddDownloadDialogListener mListener;
+    DownloadAdder mListener;
     View dialogView;
 
     @Override
@@ -29,7 +28,7 @@ public class AddDownloadDialog extends DialogFragment {
         super.onAttach(activity);
         // Verify that the host activity implements the callback interface
         try {
-            mListener = (AddDownloadDialogListener) activity;
+            mListener = (DownloadAdder) activity;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
             throw new ClassCastException(activity.toString()
@@ -57,12 +56,12 @@ public class AddDownloadDialog extends DialogFragment {
                         String uri = ((EditText) dialogView.findViewById(R.id.uri)).getText().toString();
                         String fileName = ((EditText) dialogView.findViewById(R.id.file_name)).getText().toString();
                         String filePath = ((EditText) dialogView.findViewById(R.id.file_path)).getText().toString();
-                        mListener.onDialogPositiveClick(uri, fileName, filePath);
+                        mListener.addDownload(uri, fileName, filePath);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        mListener.onDialogNegativeClick(AddDownloadDialog.this);
+                        AddDownloadDialog.this.getDialog().cancel();
                     }
                 });
         return builder.create();

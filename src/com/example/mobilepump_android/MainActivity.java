@@ -12,21 +12,27 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
+import java.io.File;
+
 public class MainActivity extends Activity implements AddDownloadDialog.DownloadAdder{
 
     private DownloadManager mDownloadManager;
-    private BroadcastReceiver mReceiver;
+    private BroadcastReceiver mDownloadCompleteReceiver;
+    private BroadcastReceiver mDownloadNotificationClickedReceiver;
+    private BroadcastReceiver mViewDownloadsReceiver;
     private ListView mListView;
     private DownloadAdapter mDownloadAdapter;
 
     private boolean isOnlyWiFi = true;
     private boolean isNotAllowedOverRoaming = true;
 
-    private String DEFAULT_PATH = Environment.getExternalStorageDirectory().getPath() + Environment.DIRECTORY_DOWNLOADS;
+    private String DEFAULT_DIR = Environment.getExternalStorageDirectory().getPath() + File.separator + Environment.DIRECTORY_DOWNLOADS;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -34,28 +40,42 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
         setContentView(R.layout.main);
 
         mDownloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-        mReceiver = new BroadcastReceiver() {
+
+        mDownloadCompleteReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-                if (action == DownloadManager.ACTION_DOWNLOAD_COMPLETE){
-                    Toast.makeText(MainActivity.this, "Download Complete", Toast.LENGTH_LONG).show();
-                } else if (action == DownloadManager.ACTION_NOTIFICATION_CLICKED) {
-                    Toast.makeText(MainActivity.this, "Notification Clicked", Toast.LENGTH_LONG).show();
-                } else if (action == DownloadManager.ACTION_VIEW_DOWNLOADS) {
-                    Toast.makeText(MainActivity.this, "Action View Downloads", Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(MainActivity.this, "Download Complete", Toast.LENGTH_LONG).show();
             }
         };
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        filter.addAction(DownloadManager.ACTION_NOTIFICATION_CLICKED);
-        filter.addAction(DownloadManager.ACTION_VIEW_DOWNLOADS);
-        registerReceiver(mReceiver, filter);
+        registerReceiver(mDownloadCompleteReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        mDownloadNotificationClickedReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Toast.makeText(MainActivity.this, "Notification Clicked", Toast.LENGTH_LONG).show();
+            }
+        };
+        registerReceiver(mDownloadNotificationClickedReceiver, new IntentFilter(DownloadManager.ACTION_NOTIFICATION_CLICKED));
+        mViewDownloadsReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Toast.makeText(MainActivity.this, "Action View Downloads", Toast.LENGTH_LONG).show();
+            }
+        };
+        registerReceiver(mViewDownloadsReceiver, new IntentFilter(DownloadManager.ACTION_VIEW_DOWNLOADS));
 
         mListView = (ListView) findViewById(R.id.list);
         mDownloadAdapter = new DownloadAdapter(this, getLoaderManager());
         mListView.setAdapter(mDownloadAdapter);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                intent.setDataAndType(mDownloadManager.getUriForDownloadedFile(id), mDownloadManager.getMimeTypeForDownloadedFile(id));
+                startActivity(intent);
+                Log.d(Constants.TAG, "Open file " + id );
+            }
+        });
     }
 
     @Override
@@ -77,6 +97,7 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
         }
     }
 
+    // TODO: Возможно нужно вынести в отдельный класс вместе с различными сетевыми настройками
     public void addDownload(String stringUri, String fileName, String filePath) {
         DownloadManager.Request request;
 
@@ -89,24 +110,22 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
         } catch (IllegalArgumentException e) {
             // Протокол должен быть либо HTTP, либо HTTPS
             Log.e(Constants.TAG, "exception", e);
-            Toast.makeText(this, e.toString(), Toast.LENGTH_LONG);
             return;
         }
 
+        File defaultDir = new File(DEFAULT_DIR);
+        if (!defaultDir.isDirectory()) {
+            defaultDir.mkdirs();
+        }
 
-        String destinationUri;
         if (fileName.isEmpty()){
             fileName = stringUri.substring(stringUri.lastIndexOf('/') + 1, stringUri.length());
         }
 
-        if (!filePath.isEmpty()) {
-            //filePath = DEFAULT_PATH;
-            if (filePath.endsWith("/")){
-                destinationUri = "file://" + filePath + fileName;
-            } else {
-                destinationUri = "file://" + filePath + "/" + fileName;
-            }
-            request.setDestinationUri(Uri.parse(destinationUri));
+        if (filePath.isEmpty()) {
+            request.setDestinationUri(Uri.parse(new File(defaultDir, fileName).toURI().toString()));
+        } else {
+            request.setDestinationUri(Uri.parse(new File(new File(filePath), fileName).toURI().toString()));
         }
 
         request.setTitle(stringUri);

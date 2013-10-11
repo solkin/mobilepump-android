@@ -54,4 +54,20 @@ public class DownloadAdapter extends CursorAdapter implements LoaderManager.Load
         ((TextView) view.findViewById(R.id.download_item_id)).setText(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)));
     }
 
+    /* *
+     *  @return uniq download id for Item
+     */
+    @Override
+    public long getItemId(int position) {
+        Cursor cursor = getCursor();
+        if (cursor != null) {
+            if (cursor.moveToPosition(position)) {
+                return cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_ID));
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
 }

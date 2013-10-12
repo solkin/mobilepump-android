@@ -98,8 +98,14 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
     }
 
     // TODO: Возможно нужно вынести в отдельный класс вместе с различными сетевыми настройками
-    public void addDownload(String stringUri, String fileName, String filePath) {
+    public void addDownload(String stringUri, String fileName, String filePath) throws IllegalArgumentException, NullPointerException, EmptyUriException{
         DownloadManager.Request request;
+
+        if (stringUri == null) {
+            throw new NullPointerException("Download URI string is null");
+        } else if (stringUri.isEmpty()){
+            throw new EmptyUriException();
+        }
 
         try {
             Uri uri = Uri.parse(stringUri);
@@ -108,25 +114,23 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
             Log.e(Constants.TAG, "exception", e);
             return;
         } catch (IllegalArgumentException e) {
-            // Протокол должен быть либо HTTP, либо HTTPS
-            Log.e(Constants.TAG, "exception", e);
-            return;
+            throw e;
         }
 
-        File defaultDir = new File(DEFAULT_DIR);
-        if (!defaultDir.isDirectory()) {
-            defaultDir.mkdirs();
+        if ( filePath == null || filePath.isEmpty()) {
+            filePath = DEFAULT_DIR;
         }
 
-        if (fileName.isEmpty()){
+        File fileDir = new File(filePath);
+        if (!fileDir.isDirectory()) {
+            fileDir.mkdirs();
+        }
+
+        if (fileName == null || fileName.isEmpty()){
             fileName = stringUri.substring(stringUri.lastIndexOf('/') + 1, stringUri.length());
         }
 
-        if (filePath.isEmpty()) {
-            request.setDestinationUri(Uri.parse(new File(defaultDir, fileName).toURI().toString()));
-        } else {
-            request.setDestinationUri(Uri.parse(new File(new File(filePath), fileName).toURI().toString()));
-        }
+        request.setDestinationUri(Uri.parse(new File(fileDir, fileName).toURI().toString()));
 
         request.setTitle(stringUri);
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
@@ -138,6 +142,14 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
             request.setAllowedOverRoaming(false);
         }
 
-        mDownloadManager.enqueue(request);
+        try {
+            mDownloadManager.enqueue(request);
+        } catch (SecurityException e) {
+            // Нет доступа к директории
+            Log.d(Constants.TAG, e.getMessage());
+            request.setDestinationUri(Uri.parse(new File(new File(DEFAULT_DIR), fileName).toURI().toString()));
+            mDownloadManager.enqueue(request);
+        }
+
     }
 }

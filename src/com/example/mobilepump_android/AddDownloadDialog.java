@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,7 +18,7 @@ import android.widget.EditText;
 public class AddDownloadDialog extends DialogFragment {
 
     public interface DownloadAdder{
-        public void addDownload(String uri, String fileName, String filePath);
+        public void addDownload(String uri, String fileName, String filePath) throws EmptyUriException;
     }
 
     DownloadAdder mListener;
@@ -54,9 +55,15 @@ public class AddDownloadDialog extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         String uri = ((EditText) dialogView.findViewById(R.id.uri)).getText().toString();
+                        if (uri.isEmpty()) {
+                            Toast.makeText(getActivity(), "Download URI is empty", Toast.LENGTH_LONG);
+                            return;
+                        }
                         String fileName = ((EditText) dialogView.findViewById(R.id.file_name)).getText().toString();
                         String filePath = ((EditText) dialogView.findViewById(R.id.file_path)).getText().toString();
-                        mListener.addDownload(uri, fileName, filePath);
+                        try {
+                            mListener.addDownload(uri, fileName, filePath);
+                        } catch (EmptyUriException ignored) {}
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {

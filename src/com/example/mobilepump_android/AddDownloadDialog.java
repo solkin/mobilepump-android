@@ -17,6 +17,10 @@ import android.widget.Toast;
  */
 public class AddDownloadDialog extends DialogFragment {
 
+    public static final String URI = "uri";
+    public static final String FILE_PATH = "file_path";
+    public static final String FILE_NAME = "file_name";
+
     public interface DownloadAdder{
         public void addDownload(String uri, String fileName, String filePath) throws EmptyUriException;
     }
@@ -39,7 +43,20 @@ public class AddDownloadDialog extends DialogFragment {
 
 
     public static void show(FragmentManager fragmentManager){
+        showWithData(fragmentManager, null);
+    }
+
+    public static void showWithParameters(FragmentManager fragmentManager, String uri){
+        Bundle data = new Bundle();
+        data.putString(URI, uri);
+        showWithData(fragmentManager, data);
+    }
+
+    public static void showWithData(FragmentManager fragmentManager, Bundle data){
         AddDownloadDialog dialog = new AddDownloadDialog();
+        if (data != null) {
+            dialog.setArguments(data);
+        }
         dialog.show(fragmentManager, "add_download_dialog");
     }
 
@@ -55,15 +72,14 @@ public class AddDownloadDialog extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         String uri = ((EditText) dialogView.findViewById(R.id.uri)).getText().toString();
-                        if (uri.isEmpty()) {
-                            Toast.makeText(getActivity(), "Download URI is empty", Toast.LENGTH_LONG);
-                            return;
-                        }
                         String fileName = ((EditText) dialogView.findViewById(R.id.file_name)).getText().toString();
                         String filePath = ((EditText) dialogView.findViewById(R.id.file_path)).getText().toString();
                         try {
                             mListener.addDownload(uri, fileName, filePath);
-                        } catch (EmptyUriException ignored) {}
+                        } catch (EmptyUriException ignored) {
+                            Toast.makeText(getActivity(), "Download URI is empty", Toast.LENGTH_LONG);
+                            return;
+                        }
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -71,6 +87,25 @@ public class AddDownloadDialog extends DialogFragment {
                         AddDownloadDialog.this.getDialog().cancel();
                     }
                 });
+
+        // Set text fields if dialog show with arguments
+        Bundle data = getArguments();
+        if (data != null){
+            String uri = data.getString(URI);
+            if (uri != null) {
+                ((EditText) dialogView.findViewById(R.id.uri)).setText(uri);
+
+                String fileName = data.getString(FILE_NAME);
+                if (fileName != null) {
+                    ((EditText) dialogView.findViewById(R.id.file_name)).setText(fileName);
+                }
+
+                String filePath = data.getString(FILE_PATH);
+                if (filePath != null) {
+                    ((EditText) dialogView.findViewById(R.id.file_path)).setText(fileName);
+                }
+            }
+        }
         return builder.create();
     }
 

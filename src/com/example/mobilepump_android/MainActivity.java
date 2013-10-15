@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -76,6 +77,23 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
                 Log.d(Constants.TAG, "Open file " + id );
             }
         });
+
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if ("text/plain".equals(type)) {
+                AddDownloadDialog.showWithParameters(getFragmentManager(), intent.getStringExtra(Intent.EXTRA_TEXT));
+            }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
+            if ("text/plain".equals(type)) {
+                AddDownloadDialog.showWithParameters(getFragmentManager(), intent.getStringExtra(Intent.EXTRA_TEXT));
+            }
+        } else if (Intent.ACTION_VIEW.equals(action)) {
+            AddDownloadDialog.showWithParameters(getFragmentManager(), intent.getDataString());
+        }
+
     }
 
     @Override
@@ -98,12 +116,10 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
     }
 
     // TODO: Возможно нужно вынести в отдельный класс вместе с различными сетевыми настройками
-    public void addDownload(String stringUri, String fileName, String filePath) throws IllegalArgumentException, NullPointerException, EmptyUriException{
+    public void addDownload(String stringUri, String fileName, String filePath) throws IllegalArgumentException, EmptyUriException{
         DownloadManager.Request request;
 
-        if (stringUri == null) {
-            throw new NullPointerException("Download URI string is null");
-        } else if (stringUri.isEmpty()){
+        if (TextUtils.isEmpty(stringUri.trim())){
             throw new EmptyUriException();
         }
 
@@ -113,21 +129,21 @@ public class MainActivity extends Activity implements AddDownloadDialog.Download
         } catch (NullPointerException e)  {
             Log.e(Constants.TAG, "exception", e);
             return;
-        } catch (IllegalArgumentException e) {
-            throw e;
         }
 
-        if ( filePath == null || filePath.isEmpty()) {
+        if (TextUtils.isEmpty(filePath.trim())) {
             filePath = DEFAULT_DIR;
         }
 
-        File fileDir = new File(filePath);
-        if (!fileDir.isDirectory()) {
+        File fileDir = new File(filePath.trim());
+        if (!fileDir.exists()) {
             fileDir.mkdirs();
+        } else if (fileDir.isFile()) {
+            fileDir = fileDir.getParentFile();
         }
 
-        if (fileName == null || fileName.isEmpty()){
-            fileName = stringUri.substring(stringUri.lastIndexOf('/') + 1, stringUri.length());
+        if (TextUtils.isEmpty(fileName.trim())){
+            fileName = stringUri.substring(stringUri.lastIndexOf('/') + 1);
         }
 
         request.setDestinationUri(Uri.parse(new File(fileDir, fileName).toURI().toString()));
